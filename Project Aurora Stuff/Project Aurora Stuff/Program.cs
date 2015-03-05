@@ -9,76 +9,87 @@ namespace Project_Aurora_Stuff
         private int mouseX, mouseY;
         private int moveCardTimer;
         private int moveCardIndex;
-        private int width = 800;
-        private int height = 600;
+        private int width = 1920;
+        private int height = 1080;
         private Interactable[] cards = new Interactable[20];
         private MouseState current;
         private bool gameRunning;
+        private static int gameState;
+        private const int SPLASH_SCREEN = 0;
+        private const int MAIN_MENU = 1;
+        private const int CARDS = 2;
+        private static int texture;
 
         private static void Main(string[] args)
         {
             Program p = new Program();
+            gameState = SPLASH_SCREEN;
             p.start();
         }
 
         public void start()
         {
-            generatecards();
-            moveCardIndex = 0;
-
             gameRunning = true;
-
-            VSyncMode VSync = VSyncMode.On;
-
             GameWindow window = new GameWindow();
 
             window.Width = width;
             window.Height = height;
             window.Visible = true;
 
+            generatecards();
+            moveCardIndex = 0;
+
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
             GL.Ortho(0, width, height, 0, -1, 1);
             GL.MatrixMode(MatrixMode.Modelview);
+            GL.Enable(EnableCap.Texture2D);
+
+            texture = Interactable.loadTexture(@"NewMagicTemplate.PNG");
 
             while (gameRunning)
             {
-                //pollInput();
-                GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-                GL.Color3(.5f, .5f, 1.0f);
-
-                for (int i = 0; i < cards.Length; i++)
+                if (gameState == SPLASH_SCREEN)
                 {
-                    if (cards[i].isMoving)
+                    gameState = MAIN_MENU;
+                }
+                else if (gameState == MAIN_MENU)
+                {
+                    gameState = CARDS;
+                }
+                else if (gameState == CARDS)
+                {
+                    //pollInput();
+                    GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+                    GL.Color3(1.0f, 1.0f, 1.0f);
+
+                    for (int i = 0; i < cards.Length; i++)
                     {
-                        cards[i].lerp(cards[i].destinationX, cards[i].destinationY, .1f);
-                        cards[i].checkIfDestinationReached();
+                        if (cards[i].isMoving)
+                        {
+                            cards[i].lerp(cards[i].destinationX, cards[i].destinationY, .1f);
+                            cards[i].checkIfDestinationReached();
+                        }
                     }
-                }
 
-                if (!(moveCardIndex == cards.Length))
-                {
-                    moveCardTimer++;
-                    if (moveCardTimer == 30)
+                    if (!(moveCardIndex == cards.Length))
                     {
-                        cards[moveCardIndex].startMovement();
-                        moveCardTimer = 0;
-                        moveCardIndex++;
+                        moveCardTimer++;
+                        if (moveCardTimer == 30)
+                        {
+                            cards[moveCardIndex].startMovement();
+                            moveCardTimer = 0;
+                            moveCardIndex++;
+                        }
                     }
+
+                    for (int i = 0; i < cards.Length; i++)
+                    {
+                        cards[i].renderCard(texture);
+                    }
+
+                    window.SwapBuffers();
                 }
-
-                for (int i = 0; i < cards.Length; i++)
-                {
-                    GL.Begin(BeginMode.Quads);
-
-                    GL.Vertex2(cards[i].x, cards[i].y);
-                    GL.Vertex2(cards[i].x + cards[i].width, cards[i].y);
-                    GL.Vertex2(cards[i].x + cards[i].width, cards[i].y + cards[i].height);
-                    GL.Vertex2(cards[i].x, cards[i].y + cards[i].height);
-                    GL.End();
-                }
-
-                window.SwapBuffers();
             }
         }
 
